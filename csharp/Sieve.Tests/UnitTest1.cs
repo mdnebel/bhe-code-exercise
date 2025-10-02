@@ -1,3 +1,5 @@
+using System;
+
 namespace Sieve.Tests
 
 {
@@ -5,18 +7,26 @@ namespace Sieve.Tests
     public class UnitTest1
     {
         [TestMethod]
-        public void TestNthPrime()
+        [DataRow(0, 2)]
+        [DataRow(19, 71)]
+        [DataRow(99, 541)]
+        [DataRow(500, 3581)]
+        [DataRow(986, 7793)]
+        [DataRow(2000, 17393)]
+        [DataRow(1000000, 15485867)]
+        [DataRow(10000000, 179424691)]
+        //[DataRow(100000000, 2038074751)] not required, just a fun challenge
+        public void TestNthPrime(long n, long expectedPrime)
         {
             ISieve sieve = new SieveImplementation();
-            Assert.AreEqual(2, sieve.NthPrime(0));
-            Assert.AreEqual(71, sieve.NthPrime(19));
-            Assert.AreEqual(541, sieve.NthPrime(99));
-            Assert.AreEqual(3581, sieve.NthPrime(500));
-            Assert.AreEqual(7793, sieve.NthPrime(986));
-            Assert.AreEqual(17393, sieve.NthPrime(2000));
-            Assert.AreEqual(15485867, sieve.NthPrime(1000000));
-            Assert.AreEqual(179424691, sieve.NthPrime(10000000));
-            //Assert.AreEqual(2038074751, sieve.NthPrime(100000000)); not required, just a fun challenge
+            Assert.AreEqual(expectedPrime, sieve.NthPrime(n));
+        }
+
+        [TestMethod]
+        public void TestNthPrimeOutOfRange()
+        {
+            ISieve sieve = new SieveImplementation();
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() => sieve.NthPrime(-1));
         }
     }
 }

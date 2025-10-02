@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sieve", "Sieve\Sieve.csproj", "{4B0AB67B-2D61-EEF5-F0E2-8F34DC4C8867}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sieve.Tests", "Sieve.Tests\Sieve.Tests.csproj", "{7BF42C76-2D9E-9CDA-A8D2-D999B6874BFB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4B0AB67B-2D61-EEF5-F0E2-8F34DC4C8867}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4B0AB67B-2D61-EEF5-F0E2-8F34DC4C8867}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4B0AB67B-2D61-EEF5-F0E2-8F34DC4C8867}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4B0AB67B-2D61-EEF5-F0E2-8F34DC4C8867}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7BF42C76-2D9E-9CDA-A8D2-D999B6874BFB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7BF42C76-2D9E-9CDA-A8D2-D999B6874BFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7BF42C76-2D9E-9CDA-A8D2-D999B6874BFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7BF42C76-2D9E-9CDA-A8D2-D999B6874BFB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9CE76067-47A0-4C87-9B7B-FC42952E5D3C}
+	EndGlobalSection
+EndGlobal

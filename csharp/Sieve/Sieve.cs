@@ -1,4 +1,6 @@
-﻿namespace Sieve;
+﻿using System;
+
+namespace Sieve;
 
 public interface ISieve
 {
@@ -9,6 +11,11 @@ public class SieveImplementation : ISieve
 {
     public long NthPrime(long n)
     {
-        throw new NotImplementedException("unimplemented");
+        if (n < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(n), n, "Must be 0 or greater");
+        }
+
+        return 0;
     }
 }
