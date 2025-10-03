@@ -8,6 +8,8 @@ namespace Sieve.Tests
     {
         [TestMethod]
         [DataRow(0, 2)]
+        [DataRow(1, 3)]
+        [DataRow(2, 5)]
         [DataRow(19, 71)]
         [DataRow(99, 541)]
         [DataRow(500, 3581)]
@@ -27,6 +29,15 @@ namespace Sieve.Tests
         {
             ISieve sieve = new SieveImplementation();
             Assert.ThrowsException<ArgumentOutOfRangeException>(() => sieve.NthPrime(-1));
+        }
+
+        [TestMethod]
+        public void TestFlaggingCompositeValues()
+        {
+            bool[] compositeFlags = SieveImplementation.FlagCompositeValues(10);
+            // Should return an array of values 0-10 with the expected flags for false indicating prime
+            // (except for the first two elements, which are ignored)
+            CollectionAssert.AreEqual(new bool[] { false, false, false, false, true, false, true, false, true, true, true }, compositeFlags);
         }
     }
 }
