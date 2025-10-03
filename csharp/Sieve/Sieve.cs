@@ -4,6 +4,9 @@ namespace Sieve;
 
 public interface ISieve
 {
+    /// <summary>
+    /// Returns the nth prime starting with 0, where n=0 returns 2, n=1 returns 3, etc.
+    /// </summary>
     long NthPrime(long n);
 }
 
@@ -29,14 +32,7 @@ public class SieveImplementation : ISieve
 
     private static long[] FindPrimes(long primeCount)
     {
-        if (primeCount == 1)
-        {
-            // Special case if we only ever need the first prime number
-            return [2];
-        }
-
-        // TODO: This gets way too large for large values of N; figure out a better way of determining the upper bound
-        long upperBound = primeCount * primeCount;
+        long upperBound = GetUpperBound(primeCount);
 
         // Initital naive implementation: an array large enough for every possible prime number.
         // Each index represents a possible prime number.
@@ -59,6 +55,28 @@ public class SieveImplementation : ISieve
         }
 
         return primes;
+    }
+
+    internal static long GetUpperBound(long n)
+    {
+        if (n < 12)
+        {
+            return 37; // the 12th prime; the nth prime must be <= this value
+            // Could return from an array of the first 12 primes, but 37 is a pretty trivially small number anyway
+        }
+
+        // p(n) < n (ln n + ln ln n - 1 + 1.8 ln ln n / ln n)
+        // Equation sourced from: https://t5k.org/howmany.html
+        // Only works for n >= 12
+        checked
+        {
+            // Increment n as this equation expects n to start at 1
+            ++n;
+            double logN = Math.Log(n);
+            double logLogN = Math.Log(logN);
+            var upperBound = (long)(n * (logN + logLogN - 1 + 1.8 * logLogN / logN));
+            return upperBound;
+        }
     }
 
     internal static bool[] FlagCompositeValues(long maxValue)
