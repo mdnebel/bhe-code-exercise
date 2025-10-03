@@ -12,6 +12,22 @@ public interface ISieve
 
 public class SieveImplementation : ISieve
 {
+    public SieveImplementation(long? maxN = null)
+    {
+        if (maxN is null)
+        {
+            // Wait until first use to populate primes
+            return;
+        }
+
+        if (maxN < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxN), maxN, "Must be 0 or greater");
+        }
+
+        _primes = FindPrimes(maxN.GetValueOrDefault() + 1);
+    }
+
     private long[] _primes = Array.Empty<long>();
 
     public long NthPrime(long n)
