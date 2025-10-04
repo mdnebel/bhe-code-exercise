@@ -17,7 +17,7 @@ namespace Sieve.Tests
         [DataRow(2000, 17393)]
         [DataRow(1000000, 15485867)]
         [DataRow(10000000, 179424691)]
-        // [DataRow(100000000, 2038074751)] TODO: Uncomment after optimizations
+        // [DataRow(100000000, 2038074751)] // Passes, but is very slow
         public void TestNthPrime(long n, long expectedPrime)
         {
             ISieve sieve = new SieveImplementation();
@@ -55,10 +55,12 @@ namespace Sieve.Tests
         [TestMethod]
         public void TestFlaggingCompositeValues()
         {
-            bool[] compositeFlags = SieveImplementation.FlagCompositeValues(10);
-            // Should return an array of values 0-10 with the expected flags for false indicating prime
-            // (except for the first two elements, which are ignored)
-            CollectionAssert.AreEqual(new bool[] { false, false, false, false, true, false, true, false, true, true, true }, compositeFlags);
+            // [1 (ignored), 3 (prime), 5 (prime), 7 (prime), 9 (composite)]
+            bool[] expectedFlags = [false, false, false, false, true];
+            bool[] compositeFlags = SieveImplementation.FlagOddCompositeValues(9);
+            CollectionAssert.AreEqual(expectedFlags, compositeFlags);
+            compositeFlags = SieveImplementation.FlagOddCompositeValues(10);
+            CollectionAssert.AreEqual(expectedFlags, compositeFlags);
         }
     }
 }
