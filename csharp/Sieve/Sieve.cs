@@ -12,6 +12,9 @@ public interface ISieve
 
 public class SieveImplementation : ISieve
 {
+    private long[] _primes = Array.Empty<long>();
+
+    /// <param name="maxN">The largest value of n expected to be needed; used to pre-create the sieve as an optimization.</param>
     public SieveImplementation(long? maxN = null)
     {
         if (maxN is null)
@@ -20,30 +23,17 @@ public class SieveImplementation : ISieve
             return;
         }
 
-        if (maxN < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(maxN), maxN, "Must be 0 or greater");
-        }
+        ValidateN(maxN.GetValueOrDefault());
 
         _primes = FindPrimes(maxN.GetValueOrDefault() + 1);
     }
 
-    private long[] _primes = Array.Empty<long>();
-
     public long NthPrime(long n)
     {
-        if (n < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(n), n, "Must be 0 or greater");
-        }
+        ValidateN(n);
 
         if (n >= _primes.Length)
         {
-            if (n == long.MaxValue)
-            {
-                throw new ArgumentOutOfRangeException(nameof(n), n, "Cannot be max value");
-            }
-
             // Potential improvement: find primes only in the new set of numbers instead of recreating the entire array
             long primeCount = Math.Max(n + 1, _primes.Length * 2);
             _primes = FindPrimes(primeCount);
@@ -120,5 +110,19 @@ public class SieveImplementation : ISieve
         }
 
         return compositeFlags;
+    }
+
+    private static void ValidateN(long n)
+    {
+        if (n < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(n), n, "Must be 0 or greater");
+        }
+
+        // Potential improvement: calculate the n of the highest prime that can fit in a long to use here instead
+        if (n == long.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(nameof(n), n, "Cannot be max value");
+        }
     }
 }
