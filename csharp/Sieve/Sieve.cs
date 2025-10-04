@@ -39,8 +39,14 @@ public class SieveImplementation : ISieve
 
         if (n >= _primes.Length)
         {
-            // TODO: Look into an efficient way of expanding the array on demand instead of recreating it
-            _primes = FindPrimes(n + 1);
+            if (n == long.MaxValue)
+            {
+                throw new ArgumentOutOfRangeException(nameof(n), n, "Cannot be max value");
+            }
+
+            // Potential improvement: find primes only in the new set of numbers instead of recreating the entire array
+            long primeCount = Math.Max(n + 1, _primes.Length * 2);
+            _primes = FindPrimes(primeCount);
         }
 
         return _primes[n];
