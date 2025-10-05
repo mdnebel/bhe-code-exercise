@@ -1,10 +1,42 @@
 using System;
+using System.Collections.Generic;
 
 namespace Sieve;
 
-public class OddsOnlySieve : Sieve
+public class OddsOnlySieve : ISieve
 {
-    protected override long[] FindPrimes(long primeCount)
+    private long[] _primes = Array.Empty<long>();
+
+    /// <param name="maxN">The largest value of n expected to be needed; used to pre-create the sieve as an optimization.</param>
+    public OddsOnlySieve(long maxN = -1)
+    {
+        if (maxN < 0)
+        {
+            // Wait until first use to populate primes
+            return;
+        }
+
+        SieveUtils.ValidateN(maxN);
+
+        _primes = FindPrimes(maxN + 1);
+    }
+
+    public long NthPrime(long n)
+    {
+        SieveUtils.ValidateN(n);
+
+        if (n >= _primes.Length)
+        {
+            // Use double the currently known number of primes to mitigate worst case of NthPrime being called on increasing consecutive values of n
+            long primeCount = Math.Max(n + 1, _primes.Length * 2);
+            // Potential improvement: find primes only in the new set of numbers instead of recreating the entire array
+            _primes = FindPrimes(primeCount);
+        }
+
+        return _primes[n];
+    }
+
+    private long[] FindPrimes(long primeCount)
     {
         var primes = new long[primeCount];
 
@@ -16,9 +48,7 @@ public class OddsOnlySieve : Sieve
             return primes;
         }
 
-        long upperBound = GetUpperBound(primeCount);
-
-        // Potential improvement: further optimize space and time using wheel factorization
+        long upperBound = SieveUtils.GetUpperBound(primeCount);
         var compositeFlags = FlagOddCompositeValues(upperBound);
         long primeIndex = 1;
         // Skip i = 0, representing the integer 1, which is not prime
@@ -61,7 +91,7 @@ public class OddsOnlySieve : Sieve
             // Start at the index of the value represented by the square of this prime,
             // since everything prior to that will already be marked properly.
             long value = i * 2 + 1;
-            for (long j = value * value / 2; j < compositeFlags.Length; j += i * 2 + 1)
+            for (long j = value * value / 2; j < compositeFlags.Length; j += value)
             {
                 compositeFlags[j] = true;
             }

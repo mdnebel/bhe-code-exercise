@@ -39,6 +39,8 @@ namespace Sieve.Tests
         [DataRow(0, 2)]
         [DataRow(1, 3)]
         [DataRow(2, 5)]
+        [DataRow(3, 7)]
+        [DataRow(10, 31)]
         [DataRow(19, 71)]
         [DataRow(99, 541)]
         [DataRow(500, 3581)]
@@ -78,7 +80,7 @@ namespace Sieve.Tests
         [DataRow(100000000, 2038074751)]
         public void TestNthUpperBound(long n, long prime)
         {
-            long upperBound = Sieve.GetUpperBound(n);
+            long upperBound = SieveUtils.GetUpperBound(n);
             Assert.IsTrue(upperBound >= prime, $"Expected upper bound {upperBound} for n {n} to be greater than prime {prime}");
             long error = upperBound - prime;
             var maxError = (long)(prime * 0.1) + 37; // An upper bound of 37 is expected for any n below 12
