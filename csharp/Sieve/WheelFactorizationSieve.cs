@@ -8,8 +8,10 @@ public class WheelFactorizationSieve : ISieve
     private static readonly long[] DefaultBasis = [2, 3, 5];
     // The first prime numbers uses a basis for filtering out a large number of subsequent composites
     private readonly long[] _basis;
+    private readonly long _basisLeastCommonMultiple;
     // The primes in the first "turn" of the wheel given the basis above
     private long[] _primesFirstTurn = Array.Empty<long>();
+    private Dictionary<long, long>? _indicesOfFirstTurnPrimes;
     // Primes found after the first turn of the wheel
     private long[] _primesAfterFirstTurn = Array.Empty<long>();
 
@@ -24,6 +26,11 @@ public class WheelFactorizationSieve : ISieve
         }
 
         _basis = basis ?? DefaultBasis;
+        _basisLeastCommonMultiple = _basis[0];
+        for (int i = 1; i < _basis.Length; i++)
+        {
+            _basisLeastCommonMultiple *= _basis[i];
+        }
 
         if (maxN < 0)
         {
@@ -38,7 +45,7 @@ public class WheelFactorizationSieve : ISieve
             return;
         }
 
-        _primesFirstTurn = FindPrimesInFirstTurn(_basis);
+        _primesFirstTurn = FindPrimesInFirstTurn();
 
         if (maxN < _basis.Length + _primesFirstTurn.Length)
         {
@@ -59,7 +66,7 @@ public class WheelFactorizationSieve : ISieve
 
         if (_primesFirstTurn.Length == 0)
         {
-            _primesFirstTurn = FindPrimesInFirstTurn(_basis);
+            _primesFirstTurn = FindPrimesInFirstTurn();
         }
 
         long adjustedN = n - _basis.Length;
@@ -80,18 +87,12 @@ public class WheelFactorizationSieve : ISieve
         return _primesAfterFirstTurn[adjustedN];
     }
 
-    private static long[] FindPrimesInFirstTurn(long[] basis)
+    private long[] FindPrimesInFirstTurn()
     {
-        long basisLeastCommonMultiple = basis[0];
-        for (int i = 1; i < basis.Length; i++)
+        var compositeFlags = new bool[_basisLeastCommonMultiple + 2];
+        for (int i = 0; i < _basis.Length; i++)
         {
-            basisLeastCommonMultiple *= basis[i];
-        }
-
-        var compositeFlags = new bool[basisLeastCommonMultiple + 2];
-        for (int i = 0; i < basis.Length; i++)
-        {
-            long prime = basis[i];
+            long prime = _basis[i];
             for (long j = prime * 2; j < compositeFlags.Length; j += prime)
             {
                 compositeFlags[j] = true;
@@ -99,7 +100,7 @@ public class WheelFactorizationSieve : ISieve
         }
 
         var primesFirstTurn = new List<long>();
-        for (long i = basis[^1] + 1; i < compositeFlags.Length; i++)
+        for (long i = _basis[^1] + 1; i < compositeFlags.Length; i++)
         {
             if (!compositeFlags[i])
             {
@@ -107,11 +108,126 @@ public class WheelFactorizationSieve : ISieve
             }
         }
 
+        _indicesOfFirstTurnPrimes = new Dictionary<long, long>(primesFirstTurn.Count);
+        for (int i = 0; i < primesFirstTurn.Count; i++)
+        {
+            _indicesOfFirstTurnPrimes.Add(primesFirstTurn[i], i);
+        }
+
         return primesFirstTurn.ToArray();
     }
 
     private long[] FindPrimesAfterFirstTurn(long primeCount)
     {
-        return [];
+        long upperBound = SieveUtils.GetUpperBound(primeCount);
+        // Each index of compositeFlags represents a value from turning the wheel, starting with the first turn.
+        // For example, with a basis of [2,3,5] creating a first turn of [7,11,13,17,19,23,29,31],
+        // compositeFlags represents [7,11,13,17,19,23,29,31,37,41,43,47,49,53,59,61,...]
+        bool[] compositeFlags;
+
+        checked
+        {
+            // Checked to detect an overflow from multiplying primeCount by the number of primes in the first turn
+            compositeFlags = new bool[(upperBound + 1) * _primesFirstTurn.Length / _basisLeastCommonMultiple];
+        }
+
+        var sqrtUpperBound = (long)Math.Sqrt(upperBound);
+        long indexOfSqrtUpperBound = ApproximateIndexFromValue(sqrtUpperBound);
+        for (long i = 0; i <= indexOfSqrtUpperBound; i++)
+        {
+            if (compositeFlags[i])
+            {
+                // If the value at this index is already marked as composite,
+                // anything it could identify as composite would already be marked as such.
+                continue;
+            }
+
+            // Start at the index of the value represented by the square of this prime,
+            // since everything prior to that will already be marked properly.
+            long value = CalculateValueFromIndex(i);
+            for (long compositeValue = value * value; compositeValue <= upperBound; compositeValue += value)
+            {
+                if (TryGetIndexFromValue(compositeValue, out long index))
+                {
+                    compositeFlags[index] = true;
+                }
+            }
+        }
+
+        long primesAfterFirstTurnCount = primeCount - _primesFirstTurn.Length - _basis.Length;
+        var primes = new long[primesAfterFirstTurnCount];
+        long primeIndex = 0;
+
+        // Skip the first turn
+        for (long i = _primesFirstTurn.Length; i < compositeFlags.Length && primeIndex < primesAfterFirstTurnCount; i++)
+        {
+            if (!compositeFlags[i])
+            {
+                primes[primeIndex] = CalculateValueFromIndex(i);
+                primeIndex++;
+            }
+        }
+
+        if (primeIndex != primesAfterFirstTurnCount)
+        {
+            throw new Exception($"Only {primeIndex + 1} prime values were found but {primeCount} were required. {nameof(upperBound)}: {upperBound}");
+        }
+
+        return primes;
+
+        long CalculateValueFromIndex(long index)
+        {
+            return _primesFirstTurn[index % _primesFirstTurn.Length] + _basisLeastCommonMultiple * (index / _primesFirstTurn.Length);
+        }
+
+        bool TryGetIndexFromValue(long value, out long index)
+        {
+            // Subtract 2 from the value to account for the fact that the last prime in the first turn will always be the least common multiple + 1
+            long multipleOfLcm = (value - 2) / _basisLeastCommonMultiple;
+            long firstTurnValue = value - (multipleOfLcm * _basisLeastCommonMultiple);
+            // I can't come up with an O(1) math-based way of converting from value back to index in this array,
+            // nor can I figure out a way to avoid doing that conversion entirely,
+            // so using a dictionary for a backwards look-up at least avoids O(n) time of traversing _primesFirstTurn each usage
+            if (!_indicesOfFirstTurnPrimes!.TryGetValue(firstTurnValue, out long firstTurnIndex))
+            {
+                index = 0;
+                return false;
+            }
+
+            index = firstTurnIndex + _primesFirstTurn.Length * multipleOfLcm;
+            return true;
+        }
+
+        // This is intended to be used when the value may not be represented by an index in the array,
+        // such as when finding the index for the square root of the upper bound,
+        // so get the index of the closest relevant value instead
+        long ApproximateIndexFromValue(long value)
+        {
+            // Subtract 2 from the value to account for the fact that the last prime in the first turn will always be the least common multiple + 1
+            long multipleOfLcm = (value - 2) / _basisLeastCommonMultiple;
+            long firstTurnValue = value - (multipleOfLcm * _basisLeastCommonMultiple);
+            long index = 0;
+            for (long i = 0; i < _primesFirstTurn.Length; i++)
+            {
+                long firstTurnPrime = _primesFirstTurn[i];
+                if (firstTurnPrime == firstTurnValue)
+                {
+                    index = i;
+                    break;
+                }
+
+                if (firstTurnPrime > firstTurnValue)
+                {
+                    if (i > 0)
+                    {
+                        index = i - 1;
+                    }
+
+                    break;
+                }
+            }
+
+            return index + _primesFirstTurn.Length * multipleOfLcm;
+        }
     }
 }

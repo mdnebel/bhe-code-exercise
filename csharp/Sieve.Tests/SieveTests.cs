@@ -41,6 +41,7 @@ namespace Sieve.Tests
         [DataRow(2, 5)]
         [DataRow(3, 7)]
         [DataRow(10, 31)]
+        [DataRow(11, 37)]
         [DataRow(19, 71)]
         [DataRow(99, 541)]
         [DataRow(500, 3581)]
