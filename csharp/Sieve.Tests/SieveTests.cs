@@ -17,7 +17,7 @@ namespace Sieve.Tests
         [DataRow(2000, 17393)]
         [DataRow(1000000, 15485867)]
         [DataRow(10000000, 179424691)]
-        // [DataRow(100000000, 2038074751)] // Passes, but is very slow
+        // [DataRow(100000000, 2038074751)] // Passes, but is very slow (~14s on my machine)
         public void TestOddsOnlyNthPrime(long n, long expectedPrime)
         {
             ISieve sieve = new OddsOnlySieve();
@@ -49,7 +49,7 @@ namespace Sieve.Tests
         [DataRow(2000, 17393)]
         [DataRow(1000000, 15485867)]
         [DataRow(10000000, 179424691)]
-        // [DataRow(100000000, 2038074751)] // Passes, but is very slow
+        // [DataRow(100000000, 2038074751)] // Passes, but is very slow (~20s on my machine)
         public void TestWheelFactorizationNthPrime(long n, long expectedPrime)
         {
             ISieve sieve = new WheelFactorizationSieve();

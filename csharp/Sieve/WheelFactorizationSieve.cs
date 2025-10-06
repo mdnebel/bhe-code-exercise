@@ -9,13 +9,13 @@ public class WheelFactorizationSieve : ISieve
     // The first prime numbers uses a basis for filtering out a large number of subsequent composites
     private readonly long[] _basis;
     private readonly long _basisLeastCommonMultiple;
-    // The primes in the first "turn" of the wheel given the basis above
-    private long[] _primesFirstTurn = Array.Empty<long>();
-    // The differences between primes in the first turn
+    // The coprime values in the first "turn" of the wheel given the basis above
+    private long[] _firstTurn = Array.Empty<long>();
+    // The differences between values in the first turn
     private long[] _incrementsFirstTurn = Array.Empty<long>();
-    private Dictionary<long, long>? _indicesOfFirstTurnPrimes;
-    // Primes found after the first turn of the wheel
-    private long[] _primesAfterFirstTurn = Array.Empty<long>();
+    private Dictionary<long, long>? _indicesOfFirstTurnValues;
+    // Primes found after the basis
+    private long[] _primesAfterBasis = Array.Empty<long>();
 
     /// <param name="basis">The set of prime numbers used to populate the wheel used for factorization. Defaults to [2, 3, 5]</param>
     /// <param name="maxN">The largest value of n expected to be needed; used to pre-create the sieve as an optimization.</param>
@@ -47,14 +47,8 @@ public class WheelFactorizationSieve : ISieve
             return;
         }
 
-        _primesFirstTurn = FindPrimesInFirstTurn();
-
-        if (maxN < _basis.Length + _primesFirstTurn.Length)
-        {
-            return;
-        }
-
-        _primesAfterFirstTurn = FindPrimesAfterFirstTurn(maxN + 1);
+        _firstTurn = CreateFirstTurn();
+        _primesAfterBasis = FindPrimesAfterBasis(maxN + 1);
     }
 
     public long NthPrime(long n)
@@ -66,30 +60,24 @@ public class WheelFactorizationSieve : ISieve
             return _basis[n];
         }
 
-        if (_primesFirstTurn.Length == 0)
+        if (_firstTurn.Length == 0)
         {
-            _primesFirstTurn = FindPrimesInFirstTurn();
+            _firstTurn = CreateFirstTurn();
         }
 
         long adjustedN = n - _basis.Length;
-        if (adjustedN < _primesFirstTurn.Length)
-        {
-            return _primesFirstTurn[adjustedN];
-        }
-
-        adjustedN -= _primesFirstTurn.Length;
-        if (adjustedN >= _primesAfterFirstTurn.Length)
+        if (adjustedN >= _primesAfterBasis.Length)
         {
             // Use double the currently known number of primes to mitigate worst case of NthPrime being called on increasing consecutive values of n
-            long primeCount = Math.Max(n + 1, (_basis.Length + _primesFirstTurn.Length + _primesAfterFirstTurn.Length) * 2);
+            long primeCount = Math.Max(n + 1, (_basis.Length + _primesAfterBasis.Length) * 2);
             // Potential improvement: find primes only in the new set of numbers instead of recreating the entire array
-            _primesAfterFirstTurn = FindPrimesAfterFirstTurn(primeCount);
+            _primesAfterBasis = FindPrimesAfterBasis(primeCount);
         }
 
-        return _primesAfterFirstTurn[adjustedN];
+        return _primesAfterBasis[adjustedN];
     }
 
-    private long[] FindPrimesInFirstTurn()
+    private long[] CreateFirstTurn()
     {
         var compositeFlags = new bool[_basisLeastCommonMultiple + 2];
         for (int i = 0; i < _basis.Length; i++)
@@ -101,32 +89,32 @@ public class WheelFactorizationSieve : ISieve
             }
         }
 
-        var primesFirstTurn = new List<long>();
+        var firstTurn = new List<long>();
         for (long i = _basis[^1] + 1; i < compositeFlags.Length; i++)
         {
             if (!compositeFlags[i])
             {
-                primesFirstTurn.Add(i);
+                firstTurn.Add(i);
             }
         }
 
-        _incrementsFirstTurn = new long[primesFirstTurn.Count];
-        _indicesOfFirstTurnPrimes = new Dictionary<long, long>(primesFirstTurn.Count);
-        for (int i = 0; i < primesFirstTurn.Count; i++)
+        _incrementsFirstTurn = new long[firstTurn.Count];
+        _indicesOfFirstTurnValues = new Dictionary<long, long>(firstTurn.Count);
+        for (int i = 0; i < firstTurn.Count; i++)
         {
-            long prime = primesFirstTurn[i];
-            long nextValue = i + 1 < primesFirstTurn.Count
-                ? primesFirstTurn[i + 1]
-                : primesFirstTurn[0] + _basisLeastCommonMultiple;
-            _incrementsFirstTurn[i] = nextValue - prime;
+            long value = firstTurn[i];
+            long nextValue = i + 1 < firstTurn.Count
+                ? firstTurn[i + 1]
+                : firstTurn[0] + _basisLeastCommonMultiple;
+            _incrementsFirstTurn[i] = nextValue - value;
 
-            _indicesOfFirstTurnPrimes.Add(prime, i);
+            _indicesOfFirstTurnValues.Add(value, i);
         }
 
-        return primesFirstTurn.ToArray();
+        return firstTurn.ToArray();
     }
 
-    private long[] FindPrimesAfterFirstTurn(long primeCount)
+    private long[] FindPrimesAfterBasis(long primeCount)
     {
         long upperBound = SieveUtils.GetUpperBound(primeCount);
         // Each index of compositeFlags represents a value from turning the wheel, starting with the first turn.
@@ -137,7 +125,7 @@ public class WheelFactorizationSieve : ISieve
         checked
         {
             // Checked to detect an overflow from multiplying primeCount by the number of primes in the first turn
-            compositeFlags = new bool[(upperBound + 1) * _primesFirstTurn.Length / _basisLeastCommonMultiple];
+            compositeFlags = new bool[(upperBound + 1) * _firstTurn.Length / _basisLeastCommonMultiple];
         }
 
         var sqrtUpperBound = (long)Math.Sqrt(upperBound);
@@ -172,12 +160,11 @@ public class WheelFactorizationSieve : ISieve
             }
         }
 
-        long primesAfterFirstTurnCount = primeCount - _primesFirstTurn.Length - _basis.Length;
-        var primes = new long[primesAfterFirstTurnCount];
+        long primesAfterBasisCount = primeCount - _basis.Length;
+        var primes = new long[primesAfterBasisCount];
         long primeIndex = 0;
 
-        // Skip the first turn
-        for (long i = _primesFirstTurn.Length; i < compositeFlags.Length && primeIndex < primesAfterFirstTurnCount; i++)
+        for (long i = 0; i < compositeFlags.Length && primeIndex < primesAfterBasisCount; i++)
         {
             if (!compositeFlags[i])
             {
@@ -186,7 +173,7 @@ public class WheelFactorizationSieve : ISieve
             }
         }
 
-        if (primeIndex != primesAfterFirstTurnCount)
+        if (primeIndex != primesAfterBasisCount)
         {
             throw new Exception($"Only {primeIndex + 1} prime values were found but {primeCount} were required. {nameof(upperBound)}: {upperBound}");
         }
@@ -195,7 +182,7 @@ public class WheelFactorizationSieve : ISieve
 
         long GetValueFromIndex(long index)
         {
-            return _primesFirstTurn[index % _primesFirstTurn.Length] + _basisLeastCommonMultiple * (index / _primesFirstTurn.Length);
+            return _firstTurn[index % _firstTurn.Length] + _basisLeastCommonMultiple * (index / _firstTurn.Length);
         }
 
         long GetIndexFromValue(long value)
@@ -206,8 +193,8 @@ public class WheelFactorizationSieve : ISieve
             // I can't come up with an O(1) math-based way of converting from value back to index in this array,
             // nor can I figure out a way to avoid doing that conversion entirely,
             // so using a dictionary for a backwards look-up at least avoids O(n) time of traversing _primesFirstTurn each usage
-            long firstTurnIndex = _indicesOfFirstTurnPrimes![firstTurnValue];
-            long index = firstTurnIndex + _primesFirstTurn.Length * multipleOfLcm;
+            long firstTurnIndex = _indicesOfFirstTurnValues![firstTurnValue];
+            long index = firstTurnIndex + _firstTurn.Length * multipleOfLcm;
             return index;
         }
 
@@ -220,9 +207,9 @@ public class WheelFactorizationSieve : ISieve
             long multipleOfLcm = (value - 2) / _basisLeastCommonMultiple;
             long firstTurnValue = value - (multipleOfLcm * _basisLeastCommonMultiple);
             long index = 0;
-            for (long i = 0; i < _primesFirstTurn.Length; i++)
+            for (long i = 0; i < _firstTurn.Length; i++)
             {
-                long firstTurnPrime = _primesFirstTurn[i];
+                long firstTurnPrime = _firstTurn[i];
                 if (firstTurnPrime == firstTurnValue)
                 {
                     index = i;
@@ -240,7 +227,7 @@ public class WheelFactorizationSieve : ISieve
                 }
             }
 
-            return index + _primesFirstTurn.Length * multipleOfLcm;
+            return index + _firstTurn.Length * multipleOfLcm;
         }
     }
 }
