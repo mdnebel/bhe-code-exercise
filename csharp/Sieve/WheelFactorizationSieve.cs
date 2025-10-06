@@ -11,6 +11,8 @@ public class WheelFactorizationSieve : ISieve
     private readonly long _basisLeastCommonMultiple;
     // The primes in the first "turn" of the wheel given the basis above
     private long[] _primesFirstTurn = Array.Empty<long>();
+    // The differences between primes in the first turn
+    private long[] _incrementsFirstTurn = Array.Empty<long>();
     private Dictionary<long, long>? _indicesOfFirstTurnPrimes;
     // Primes found after the first turn of the wheel
     private long[] _primesAfterFirstTurn = Array.Empty<long>();
@@ -108,10 +110,17 @@ public class WheelFactorizationSieve : ISieve
             }
         }
 
+        _incrementsFirstTurn = new long[primesFirstTurn.Count];
         _indicesOfFirstTurnPrimes = new Dictionary<long, long>(primesFirstTurn.Count);
         for (int i = 0; i < primesFirstTurn.Count; i++)
         {
-            _indicesOfFirstTurnPrimes.Add(primesFirstTurn[i], i);
+            long prime = primesFirstTurn[i];
+            long nextValue = i + 1 < primesFirstTurn.Count
+                ? primesFirstTurn[i + 1]
+                : primesFirstTurn[0] + _basisLeastCommonMultiple;
+            _incrementsFirstTurn[i] = nextValue - prime;
+
+            _indicesOfFirstTurnPrimes.Add(prime, i);
         }
 
         return primesFirstTurn.ToArray();
@@ -142,14 +151,23 @@ public class WheelFactorizationSieve : ISieve
                 continue;
             }
 
-            // Start at the index of the value represented by the square of this prime,
+            // Start at the index of the value represented by the square of this starting value,
             // since everything prior to that will already be marked properly.
-            long value = CalculateValueFromIndex(i);
-            for (long compositeValue = value * value; compositeValue <= upperBound; compositeValue += value)
+            long value = GetValueFromIndex(i);
+            long compositeValue = value * value;
+            long incrementIndex = i % _incrementsFirstTurn.Length;
+            while (compositeValue <= upperBound)
             {
-                if (TryGetIndexFromValue(compositeValue, out long index))
+                long index = GetIndexFromValue(compositeValue);
+                compositeFlags[index] = true;
+
+                // Use the fact that there are consistent increments between each prime in the wheel
+                // to calculate the next value that exists in the array
+                compositeValue += _incrementsFirstTurn[incrementIndex] * value;
+                ++incrementIndex;
+                if (incrementIndex >= _incrementsFirstTurn.Length)
                 {
-                    compositeFlags[index] = true;
+                    incrementIndex = 0;
                 }
             }
         }
@@ -163,7 +181,7 @@ public class WheelFactorizationSieve : ISieve
         {
             if (!compositeFlags[i])
             {
-                primes[primeIndex] = CalculateValueFromIndex(i);
+                primes[primeIndex] = GetValueFromIndex(i);
                 primeIndex++;
             }
         }
@@ -175,12 +193,12 @@ public class WheelFactorizationSieve : ISieve
 
         return primes;
 
-        long CalculateValueFromIndex(long index)
+        long GetValueFromIndex(long index)
         {
             return _primesFirstTurn[index % _primesFirstTurn.Length] + _basisLeastCommonMultiple * (index / _primesFirstTurn.Length);
         }
 
-        bool TryGetIndexFromValue(long value, out long index)
+        long GetIndexFromValue(long value)
         {
             // Subtract 2 from the value to account for the fact that the last prime in the first turn will always be the least common multiple + 1
             long multipleOfLcm = (value - 2) / _basisLeastCommonMultiple;
@@ -188,14 +206,9 @@ public class WheelFactorizationSieve : ISieve
             // I can't come up with an O(1) math-based way of converting from value back to index in this array,
             // nor can I figure out a way to avoid doing that conversion entirely,
             // so using a dictionary for a backwards look-up at least avoids O(n) time of traversing _primesFirstTurn each usage
-            if (!_indicesOfFirstTurnPrimes!.TryGetValue(firstTurnValue, out long firstTurnIndex))
-            {
-                index = 0;
-                return false;
-            }
-
-            index = firstTurnIndex + _primesFirstTurn.Length * multipleOfLcm;
-            return true;
+            long firstTurnIndex = _indicesOfFirstTurnPrimes![firstTurnValue];
+            long index = firstTurnIndex + _primesFirstTurn.Length * multipleOfLcm;
+            return index;
         }
 
         // This is intended to be used when the value may not be represented by an index in the array,
