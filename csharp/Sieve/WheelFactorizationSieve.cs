@@ -179,55 +179,58 @@ public class WheelFactorizationSieve : ISieve
         }
 
         return primes;
+    }
 
-        long GetValueFromIndex(long index)
-        {
-            return _firstTurn[index % _firstTurn.Length] + _basisLeastCommonMultiple * (index / _firstTurn.Length);
-        }
+    private long GetValueFromIndex(long index) =>
+        _firstTurn[index % _firstTurn.Length] + _basisLeastCommonMultiple * (index / _firstTurn.Length);
 
-        long GetIndexFromValue(long value)
-        {
-            // Subtract 2 from the value to account for the fact that the last prime in the first turn will always be the least common multiple + 1
-            long multipleOfLcm = (value - 2) / _basisLeastCommonMultiple;
-            long firstTurnValue = value - (multipleOfLcm * _basisLeastCommonMultiple);
-            // I can't come up with an O(1) math-based way of converting from value back to index in this array,
-            // nor can I figure out a way to avoid doing that conversion entirely,
-            // so using a dictionary for a backwards look-up at least avoids O(n) time of traversing _primesFirstTurn each usage
-            long firstTurnIndex = _indicesOfFirstTurnValues![firstTurnValue];
-            long index = firstTurnIndex + _firstTurn.Length * multipleOfLcm;
-            return index;
-        }
+    private long GetIndexFromValue(long value)
+    {
+        (long multipleOfLcm, long firstTurnValue) = GetAssociatedValueFromFirstTurn(value);
+        // I can't come up with an O(1) math-based way of converting from value back to index in this array,
+        // nor can I figure out a way to avoid doing that conversion entirely,
+        // so using a dictionary for a backwards look-up at least avoids O(n) time of traversing _primesFirstTurn each usage
+        long firstTurnIndex = _indicesOfFirstTurnValues![firstTurnValue];
+        long index = firstTurnIndex + _firstTurn.Length * multipleOfLcm;
+        return index;
+    }
 
-        // This is intended to be used when the value may not be represented by an index in the array,
-        // such as when finding the index for the square root of the upper bound,
-        // so get the index of the closest relevant value instead
-        long ApproximateIndexFromValue(long value)
+    // This is intended to be used when the value may not be represented by an index in the array,
+    // such as when finding the index for the square root of the upper bound,
+    // so get the index of the closest relevant value instead
+    private long ApproximateIndexFromValue(long value)
+    {
+        (long multipleOfLcm, long firstTurnValue) = GetAssociatedValueFromFirstTurn(value);
+        long index = 0;
+        for (long i = 0; i < _firstTurn.Length; i++)
         {
-            // Subtract 2 from the value to account for the fact that the last prime in the first turn will always be the least common multiple + 1
-            long multipleOfLcm = (value - 2) / _basisLeastCommonMultiple;
-            long firstTurnValue = value - (multipleOfLcm * _basisLeastCommonMultiple);
-            long index = 0;
-            for (long i = 0; i < _firstTurn.Length; i++)
+            long firstTurnPrime = _firstTurn[i];
+            if (firstTurnPrime == firstTurnValue)
             {
-                long firstTurnPrime = _firstTurn[i];
-                if (firstTurnPrime == firstTurnValue)
-                {
-                    index = i;
-                    break;
-                }
-
-                if (firstTurnPrime > firstTurnValue)
-                {
-                    if (i > 0)
-                    {
-                        index = i - 1;
-                    }
-
-                    break;
-                }
+                index = i;
+                break;
             }
 
-            return index + _firstTurn.Length * multipleOfLcm;
+            if (firstTurnPrime > firstTurnValue)
+            {
+                if (i > 0)
+                {
+                    index = i - 1;
+                }
+
+                break;
+            }
         }
+
+        return index + _firstTurn.Length * multipleOfLcm;
+    }
+
+    private (long multipleOfLcm, long firstTurnValue) GetAssociatedValueFromFirstTurn(long value)
+    {
+        // Subtract 2 from the value when calculating the multiple
+        // to account for the fact that the last value in the first turn will always be the least common multiple + 1
+        long multipleOfLcm = (value - 2) / _basisLeastCommonMultiple;
+        long firstTurnValue = value - (multipleOfLcm * _basisLeastCommonMultiple);
+        return (multipleOfLcm, firstTurnValue);
     }
 }
